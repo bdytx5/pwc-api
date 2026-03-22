@@ -59,16 +59,30 @@ for p in trending:
     print(f"{p['stars_7d_gain']:+5d}  {p['title'][:60]}")
 ```
 
-### pip (optional helper)
+### Install as a Python package
 
 ```bash
-pip install pwc-papers
+pip install git+https://github.com/bdytx5/pwc-api.git
 ```
 
-```python
-from pwc_papers import load_papers
+Then:
 
+```python
+from pwc_papers import load_papers, trending
+
+# All papers (sorted by stars desc)
 papers = load_papers()
+
+# Top 20 by 7-day star gain
+hot = trending(days=7, top_n=20)
+for p in hot:
+    print(f"{p['stars_7d_gain']:+5d}  {p['title'][:60]}")
+```
+
+To upgrade to the latest data schema:
+
+```bash
+pip install --upgrade git+https://github.com/bdytx5/pwc-api.git
 ```
 
 ## Update frequency

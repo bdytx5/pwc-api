@@ -3,7 +3,6 @@
 import json
 import urllib.request
 
-# UPDATE THIS after you create the GitHub repo
 _DEFAULT_URL = "https://raw.githubusercontent.com/bdytx5/pwc-api/main/papers_with_stats.json"
 
 

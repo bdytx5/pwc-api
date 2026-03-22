@@ -11,3 +11,6 @@ license = {text = "MIT"}
 
 [project.urls]
 Repository = "https://github.com/bdytx5/pwc-api"
+
+[tool.setuptools.packages.find]
+include = ["pwc_papers*"]
