@@ -4,9 +4,14 @@ Daily-updated dataset of ML/AI papers with GitHub repos and star growth stats.
 
 ## Data
 
-**`papers_with_stats.json`** — array of papers sorted by stars (descending).
+Two datasets are available:
 
-Each entry:
+| File | What's in it |
+|------|-------------|
+| `papers_with_stats.json` | Arxiv papers that have a linked GitHub repo (paper required) |
+| `ai_repos_with_stats.json` | All trending AI/ML repos — with or without a paper |
+
+### `papers_with_stats.json`
 
 ```json
 {
@@ -26,65 +31,140 @@ Each entry:
 }
 ```
 
-| Field | Description |
-|-------|-------------|
-| `arxiv_url` | Link to the paper on arXiv |
-| `title` | Paper title |
-| `github_url` | Associated GitHub repo |
-| `stars` | Current GitHub star count |
-| `date_published` | Paper publication date |
-| `first_seen` | When we first started tracking |
-| `stars_Nd_gain` | Star count change over the last N days (null if insufficient history) |
+### `ai_repos_with_stats.json`
 
-## Usage
-
-### curl
-
-```bash
-curl -s https://raw.githubusercontent.com/bdytx5/pwc-api/main/papers_with_stats.json | python3 -m json.tool | head -20
+```json
+{
+  "github_url": "https://github.com/owner/repo",
+  "name": "repo-name",
+  "description": "Repo description",
+  "stars": 1234,
+  "topics": ["machine-learning", "pytorch"],
+  "language": "Python",
+  "has_paper": true,
+  "arxiv_url": "https://arxiv.org/abs/2501.12345",
+  "date_created": "2026-03-20",
+  "first_seen": "2026-03-25",
+  "stars_3d_gain": 100,
+  "stars_7d_gain": 250,
+  "stars_14d_gain": null,
+  "stars_30d_gain": null,
+  "stars_60d_gain": null,
+  "stars_90d_gain": null,
+  "stars_180d_gain": null
+}
 ```
 
-### Python
-
-```python
-import requests
-
-papers = requests.get(
-    "https://raw.githubusercontent.com/bdytx5/pwc-api/main/papers_with_stats.json"
-).json()
-
-# Top 10 by 7-day star gain
-trending = sorted(papers, key=lambda p: p.get("stars_7d_gain") or 0, reverse=True)[:10]
-for p in trending:
-    print(f"{p['stars_7d_gain']:+5d}  {p['title'][:60]}")
-```
-
-### Install as a Python package
+## Install
 
 ```bash
 pip install git+https://github.com/bdytx5/pwc-api.git
 ```
 
-Then:
+## Quick start
 
 ```python
-from pwc_papers import load_papers, trending
+from pwc_papers import search
 
-# All papers (sorted by stars desc)
-papers = load_papers()
-
-# Top 20 by 7-day star gain
-hot = trending(days=7, top_n=20)
-for p in hot:
-    print(f"{p['stars_7d_gain']:+5d}  {p['title'][:60]}")
+# Most popular AI repos released this year
+results = search(source="repos", top_n=25, sort_by="stars", date_from="2026-01-01")
+for r in results:
+    print(f"{r['stars']:>6}  {r['name']:30s}  {r['date_created']}  {r['description'][:50]}")
 ```
 
-To upgrade to the latest data schema:
+## API Reference
+
+### `search(source, top_n, sort_by, date_from, date_to)`
+
+Unified search across both datasets with filtering and sorting.
+
+```python
+from pwc_papers import search
+```
+
+**Parameters:**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `source` | str | `"papers"` | `"papers"` for arxiv papers with repos, `"repos"` for all AI repos |
+| `top_n` | int | `50` | Number of results to return |
+| `sort_by` | str | `"stars"` | Sort field (see below) |
+| `date_from` | str | `None` | Filter: publish/creation date >= this (`"YYYY-MM-DD"`) |
+| `date_to` | str | `None` | Filter: publish/creation date <= this (`"YYYY-MM-DD"`) |
+
+**Sort options:** `"stars"`, `"stars_3d_gain"`, `"stars_7d_gain"`, `"stars_14d_gain"`, `"stars_30d_gain"`, `"stars_60d_gain"`, `"stars_90d_gain"`, `"stars_180d_gain"`
+
+### Examples
+
+```python
+from pwc_papers import search
+
+# --- Choosing source: papers vs repos ---
+
+# Papers only (must have arxiv link + github repo)
+papers = search(source="papers", top_n=10, sort_by="stars")
+
+# AI repos (any trending AI/ML repo, paper optional)
+repos = search(source="repos", top_n=10, sort_by="stars")
+
+# --- Sorting by different star gains ---
+
+# Hottest papers this week
+search(source="papers", top_n=10, sort_by="stars_7d_gain")
+
+# Fastest growing repos this month
+search(source="repos", top_n=10, sort_by="stars_30d_gain")
+
+# Most stars gained in last 3 days
+search(source="repos", top_n=10, sort_by="stars_3d_gain")
+
+# --- Date filtering ---
+
+# Most popular AI repos released this year
+search(source="repos", top_n=25, sort_by="stars", date_from="2026-01-01")
+
+# Papers published in Q1 2026
+search(source="papers", top_n=20, sort_by="stars", date_from="2026-01-01", date_to="2026-03-31")
+
+# Repos created in the last 30 days, sorted by star velocity
+search(source="repos", top_n=15, sort_by="stars_7d_gain", date_from="2026-02-22")
+
+# --- Combining filters ---
+
+# Top repos from the past year with fastest weekly growth
+search(
+    source="repos",
+    top_n=20,
+    sort_by="stars_7d_gain",
+    date_from="2025-03-24",
+    date_to="2026-03-24",
+)
+```
+
+### Convenience functions
+
+```python
+from pwc_papers import load_papers, trending, load_ai_repos, trending_repos
+
+# Load raw data
+all_papers = load_papers()       # list of dicts, sorted by stars
+all_repos = load_ai_repos()      # list of dicts, sorted by stars
+
+# Trending by star gain window
+hot_papers = trending(days=7, top_n=20)       # papers by 7-day gain
+hot_repos = trending_repos(days=30, top_n=20) # repos by 30-day gain
+```
+
+### curl
 
 ```bash
-pip install --upgrade git+https://github.com/bdytx5/pwc-api.git
+# Papers
+curl -s https://raw.githubusercontent.com/bdytx5/pwc-api/main/papers_with_stats.json | python3 -m json.tool | head -30
+
+# AI Repos
+curl -s https://raw.githubusercontent.com/bdytx5/pwc-api/main/ai_repos_with_stats.json | python3 -m json.tool | head -30
 ```
 
 ## Update frequency
 
-Data is rebuilt and pushed daily.
+Data is rebuilt and pushed daily at ~2am UTC.
